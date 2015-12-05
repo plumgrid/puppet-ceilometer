@@ -28,6 +28,9 @@
 # [*service_type*]
 #    Type of service. Optional. Defaults to 'metering'.
 #
+# [*service_description*]
+#    Description for keystone service. Optional. Defaults to 'Openstack Metering Service'.
+#
 # [*region*]
 #    Region for endpoint. Optional. Defaults to 'RegionOne'.
 #
@@ -102,6 +105,7 @@ class ceilometer::keystone::auth (
   $configure_user_role  = true,
   $service_name         = undef,
   $service_type         = 'metering',
+  $service_description  = 'Openstack Metering Service',
   $region               = 'RegionOne',
   $tenant               = 'services',
   $configure_endpoint   = true,
@@ -182,7 +186,7 @@ class ceilometer::keystone::auth (
     configure_user_role => $configure_user_role,
     configure_endpoint  => $configure_endpoint,
     service_type        => $service_type,
-    service_description => 'Openstack Metering Service',
+    service_description => $service_description,
     service_name        => $service_name_real,
     region              => $region,
     password            => $password,
@@ -200,8 +204,7 @@ class ceilometer::keystone::auth (
         ensure => present,
       }
     }
-    Keystone_role['ResellerAdmin'] -> Keystone_user_role["${auth_name}@${tenant}"] ~>
-      Service <| name == 'ceilometer-api' |>
+    Keystone_role['ResellerAdmin'] -> Keystone_user_role["${auth_name}@${tenant}"]
   }
 
 }

@@ -57,30 +57,6 @@ class ceilometer::agent::polling (
       }
     }
 
-    #NOTE(dprince): This is using a custom (inline) file_line provider
-    # until this lands upstream:
-    # https://github.com/puppetlabs/puppetlabs-stdlib/pull/174
-    Nova_config<| |> {
-      before +> File_line_after[
-        'nova-notification-driver-common',
-        'nova-notification-driver-ceilometer'
-      ],
-    }
-
-    file_line_after {
-      'nova-notification-driver-common':
-        line   =>
-          'notification_driver=nova.openstack.common.notifier.rpc_notifier',
-        path   => '/etc/nova/nova.conf',
-        after  => '^\s*\[DEFAULT\]',
-        notify => Service['nova-compute'];
-      'nova-notification-driver-ceilometer':
-        line   => 'notification_driver=ceilometer.compute.nova_notifier',
-        path   => '/etc/nova/nova.conf',
-        after  => '^\s*\[DEFAULT\]',
-        notify => Service['nova-compute'];
-    }
-
     $compute_namespace_name = 'compute'
 
     Package <| title == 'nova-common' |> -> Package['ceilometer-common']
@@ -104,7 +80,7 @@ class ceilometer::agent::polling (
   package { 'ceilometer-polling':
     ensure => $package_ensure,
     name   => $::ceilometer::params::agent_polling_package_name,
-    tag    => 'openstack',
+    tag    => ['openstack', 'ceilometer-package'],
   }
 
   if $namespaces_real {
@@ -123,6 +99,7 @@ class ceilometer::agent::polling (
     enable     => $enabled,
     hasstatus  => true,
     hasrestart => true,
+    tag        => 'ceilometer-service',
   }
 
   if $coordination_url {

@@ -6,17 +6,11 @@ describe 'ceilometer with mysql' do
 
     it 'should work with no errors' do
       pp= <<-EOS
-      # make sure apache is stopped before ceilometer-api eventlet
-      # in case of wsgi was run before
-      class { '::apache':
-        service_ensure => 'stopped',
-      }
-      Service['httpd'] -> Service['keystone']
-
       include ::openstack_integration
       include ::openstack_integration::repos
       include ::openstack_integration::rabbitmq
       include ::openstack_integration::mysql
+      include ::openstack_integration::keystone
 
       rabbitmq_user { 'ceilometer':
         admin    => true,
@@ -33,34 +27,12 @@ describe 'ceilometer with mysql' do
         require              => Class['rabbitmq'],
       }
 
-      # Keystone resources, needed by Ceilometer to run
-      class { '::keystone::db::mysql':
-        password => 'keystone',
-      }
-      class { '::keystone':
-        verbose             => true,
-        debug               => true,
-        database_connection => 'mysql://keystone:keystone@127.0.0.1/keystone',
-        admin_token         => 'admin_token',
-        enabled             => true,
-      }
-      class { '::keystone::roles::admin':
-        email    => 'test@example.tld',
-        password => 'a_big_secret',
-      }
-      class { '::keystone::endpoint':
-        public_url => "https://${::fqdn}:5000/",
-        admin_url  => "https://${::fqdn}:35357/",
-      }
-
       # Ceilometer resources
       class { '::ceilometer':
         metering_secret     => 'secrete',
         rabbit_userid       => 'ceilometer',
         rabbit_password     => 'an_even_bigger_secret',
         rabbit_host         => '127.0.0.1',
-        debug               => true,
-        verbose             => true,
       }
       class { '::ceilometer::db::mysql':
         password => 'a_big_secret',
@@ -82,6 +54,11 @@ describe 'ceilometer with mysql' do
         enabled               => true,
         keystone_password     => 'a_big_secret',
         keystone_identity_uri => 'http://127.0.0.1:35357/',
+        service_name          => 'httpd',
+      }
+      include ::apache
+      class { '::ceilometer::wsgi::apache':
+        ssl => false,
       }
       EOS
 
@@ -92,7 +69,7 @@ describe 'ceilometer with mysql' do
     end
 
     describe port(8777) do
-      it { is_expected.to be_listening.with('tcp') }
+      it { is_expected.to be_listening }
     end
 
     describe cron do

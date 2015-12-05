@@ -1,4 +1,6 @@
 require 'spec_helper'
+# LP1492636 - Cohabitation of compile matcher and webmock
+WebMock.disable_net_connect!(:allow => "169.254.169.254")
 
 describe 'ceilometer::collector' do
 
@@ -69,10 +71,6 @@ describe 'ceilometer::collector' do
         )
       end
 
-      it 'configures relationships on database' do
-        is_expected.to contain_class('ceilometer::db').with_before(['Service[ceilometer-collector]'])
-        is_expected.to contain_exec('ceilometer-dbsync').with_notify(['Service[ceilometer-collector]'])
-      end
     end
 
     context 'when disabled' do
